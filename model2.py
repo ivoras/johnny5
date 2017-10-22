@@ -3,18 +3,15 @@ from model import Model
 
 class Model2(Model):
 
-    def __init__(self, db, pair_id, fit_interval, granularity, initial_coin = 0, initial_fiat = 100, pct_high = 10, pct_low = 5):
-        super().__init__(db, pair_id, fit_interval, granularity)
-        self.start = True
-        self.balance_coin = initial_coin
-        self.balance_fiat = initial_fiat
+    def __init__(self, db, pair_id, fit_interval, granularity, initial_coin = 0, initial_fiat = 100, pct_high = 15, pct_low = 5):
+        super().__init__(db, pair_id, fit_interval, granularity, initial_coin, initial_fiat, pct_high, pct_low)
         self.rate_bought = 0
         self.rate_sold = 0
         self.ts_buy = 0
-        self.ts_last = 0
         self.ts_sell = 0
         self.pct_high = pct_high
-        self.pct_low = pct_low
+        self.ts_granularity = 0
+        self.max_idle_time = 3600*24*20
 
     def buy(self, fiat, rate, ts):
         self.balance_coin += fiat / rate
@@ -22,7 +19,7 @@ class Model2(Model):
         self.rate_bought = rate
         self.ts_buy = ts
         self.ts_last = ts
-        print('b', self.balance_coin, self.balance_fiat)
+        self.print_balance('b', rate)
 
 
     def sell(self, coin, rate, ts):
@@ -31,7 +28,7 @@ class Model2(Model):
         self.rate_sold = rate
         self.ts_sell = ts
         self.ts_last = ts
-        print('s', self.balance_coin, self.balance_fiat)
+        self.print_balance('s', rate)
 
     def newpoint(self, ts, value):
         value = float(value)
@@ -40,10 +37,18 @@ class Model2(Model):
             self.ts_last = ts
             self.start = False
             return
-        if ts - self.ts_last < self.granularity:
+        if ts - self.ts_granularity < self.granularity:
             return
-        if value > (1 + self.pct_high / 100) * self.rate_bought and self.balance_coin > 0:
+        self.ts_granularity = ts
+
+        if value > (1 + self.pct_high / 100.0) * self.rate_bought and self.balance_coin > 0:
             self.sell(self.balance_coin, value, ts)
-        elif value <= (1 - self.pct_low / 100) * self.rate_sold and self.balance_fiat > 0:
+        elif value <= (1 - self.pct_low / 100.0) * self.rate_sold and self.balance_fiat > 0:
             self.buy(self.balance_fiat, value, ts)
+        elif ts > self.ts_sell + self.max_idle_time and ts > self.ts_buy + self.max_idle_time:
+            if self.ts_sell > self.ts_buy:
+                self.buy(self.balance_fiat / 2.0,  value, ts)
+            else:
+                self.sell(self.balance_coin / 2.0, value, ts)
+
 

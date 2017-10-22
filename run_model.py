@@ -38,8 +38,8 @@ def main():
     cur.execute('SELECT id, kname FROM pairs WHERE name=%s', (PAIR,))
     pair_id, KPAIR = cur.fetchone()
 
-    f = HistoricalFeed(db, pair_id, FROM, 3600)
-    m = Model2(db, pair_id, 6*3600, 1*3600)
+    f = HistoricalFeed(db, pair_id, FROM, 600)
+    m = Model2(db, pair_id, 6*3600, 600)
 
     while True:
         try:

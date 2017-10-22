@@ -31,5 +31,5 @@ class Model:
             print('%s %s %0.8f %0.2f [%0.2f]' % (ts, mark, self.balance_coin, self.balance_fiat, self.total_balance(rate)))
 
     def total_balance(self, rate):
-        return self.balance_fiat + self.balance_coin * rate
+        return self.balance_fiat + self.balance_coin * float(rate)
 

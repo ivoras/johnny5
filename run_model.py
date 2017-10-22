@@ -39,7 +39,7 @@ def main():
     pair_id, KPAIR = cur.fetchone()
 
     f = HistoricalFeed(db, pair_id, FROM, 600)
-    m = Model2(db, pair_id, 6*3600, 600)
+    m = Model2(db, pair_id, 6*3600, 600*2)
 
     while True:
         try:
@@ -48,7 +48,7 @@ def main():
             break
         if ts >= TO: break
         action = m.newpoint(ts, value)
-        #print(action)
+
 
 if __name__ == '__main__':
     main()

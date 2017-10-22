@@ -3,7 +3,7 @@ from model import Model
 
 class Model2(Model):
 
-    def __init__(self, db, pair_id, fit_interval, granularity, initial_coin = 0, initial_fiat = 100, pct_high = 15, pct_low = 5):
+    def __init__(self, db, pair_id, fit_interval, granularity, initial_coin = 0, initial_fiat = 100, pct_high = 15, pct_low = 10):
         super().__init__(db, pair_id, fit_interval, granularity, initial_coin, initial_fiat, pct_high, pct_low)
         self.rate_bought = 0
         self.rate_sold = 0
@@ -46,9 +46,9 @@ class Model2(Model):
         elif value <= (1 - self.pct_low / 100.0) * self.rate_sold and self.balance_fiat > 0:
             self.buy(self.balance_fiat, value, ts)
         elif ts > self.ts_sell + self.max_idle_time and ts > self.ts_buy + self.max_idle_time:
-            if self.ts_sell > self.ts_buy:
+            if self.ts_sell > self.ts_buy and self.balance_fiat > 0:
                 self.buy(self.balance_fiat / 2.0,  value, ts)
-            else:
+            elif self.balance_coin > 0:
                 self.sell(self.balance_coin / 2.0, value, ts)
 
 

@@ -4,6 +4,7 @@ from getopt import getopt
 import json
 import psycopg2
 import sys, os
+from time import time, sleep
 import urllib, urllib.request
 
 # 1383839436.659
@@ -20,7 +21,9 @@ def main():
     PAIR = 'BTCEUR'
 
     db = psycopg2.connect('dbname=johnny5 user=johnny5')
-    opts, args = getopt(sys.argv[1:], 'f:p:t:')
+    cur = db.cursor()
+
+    opts, args = getopt(sys.argv[1:], 'f:lp:t:')
 
     for o, a in opts:
         if o == '-f':
@@ -29,10 +32,12 @@ def main():
             PAIR = a
         elif o == '-t':
             TO = date2ts(a)
+        elif o == '-l':
+            cur.execute('SELECT MAX(ts) FROM historical')
+            FROM = cur.fetchone()[0]
         else:
             raise Exception("Unknown option: %s" % o)
 
-    cur = db.cursor()
     cur.execute('SELECT id, kname FROM pairs WHERE name=%s', (PAIR,))
     pair_id, KPAIR = cur.fetchone()
 
@@ -45,10 +50,15 @@ def main():
             kdata = resp.read().decode('latin1')
         data = json.loads(kdata)
         if data['error']:
+            print(data['error'])
+            if 'EService:Unavailable' in data['error']:
+                sleep(2)
+                continue
             raise Exception(repr(data['error']))
         cur.execute('DELETE FROM historical WHERE ts BETWEEN %s AND %s', (data['result'][KPAIR][0][2], data['result'][KPAIR][-1][2]))
+        idata = [ cur.mogrify('(%s,%s,%s,%s,%s)', (pair_id, d[0], d[1], d[3], d[2])) for d in data['result'][KPAIR] ]
+        cur.execute(b'INSERT INTO historical(pair_id, value, volume, op, ts) VALUES %s' % b','.join(idata))
         for d in data['result'][KPAIR]:
-            cur.execute('INSERT INTO historical(pair_id, value, volume, op, ts) VALUES (%s, %s, %s, %s, %s)', (pair_id, d[0], d[1], d[3], d[2]))
             if d[2] > ctime:
                 ctime = d[2]
         if ctime > datetime.utcnow().timestamp()-10:
